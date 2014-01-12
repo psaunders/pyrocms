@@ -159,7 +159,7 @@ class Plugin_Blog extends Plugin
 	 * available to streams, sans stream, where, and namespace.
 	 *
 	 * Usage:
-	 * {{ blog:posts limit="5" }}
+	 * {{ blog:posts limit="5" keyword="a string" }}
 	 *		<h2>{{ title }}</h2>
 	 * {{ /blog:posts }}
 	 *
@@ -184,7 +184,8 @@ class Plugin_Blog extends Plugin
 			'show_past'		=> 'no',
 			'date_by'		=> 'created_on',
 			'limit'			=> $this->attribute('limit', null),
-			'offset'		=> $this->attribute('offset')
+			'offset'		=> $this->attribute('offset').
+			'keyword'		=> false
 		);
 		foreach ($overrides as $k => $v) {
 			$params[$k] = $v;
@@ -223,6 +224,22 @@ class Plugin_Blog extends Plugin
 				$params['where'][] = implode(' OR ', $cate_filter_by);
 			}
 		}
+		
+		
+		// Keywords
+		// If the plugin has defined a keyword to filter by
+		if($keyword = $this->attribute('keyword')){
+			$this->row_m->sql['join'][] = 'JOIN '.$this->db->protect_identifiers('keywords_applied', true).' ON '.
+				$this->db->protect_identifiers('keywords_applied.hash', true).' = '.
+				$this->db->protect_identifiers('blog.keywords', true);
+	
+			$this->row_m->sql['join'][] = 'JOIN '.$this->db->protect_identifiers('keywords', true).' ON '.
+				$this->db->protect_identifiers('keywords.id', true).' = '.
+				$this->db->protect_identifiers('keywords_applied.keyword_id', true);	
+	
+			$this->row_m->sql['where'][] = $this->db->protect_identifiers('keywords.name', true)." = '".str_replace('-', ' ', $keyword)."'";
+		}
+
 
 		// Extra join and selects for categories.
 		$this->row_m->sql['select'][] = $this->db->protect_identifiers('blog_categories.title', true)." as 'category_title'";
